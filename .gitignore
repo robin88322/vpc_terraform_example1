@@ -6,3 +6,5 @@
 # Executables
 *.tfstate
 *.tfstate.backup
+*.info
+credentials.tf
