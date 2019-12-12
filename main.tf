@@ -16,42 +16,42 @@ resource "aws_vpc" "test" {
 }
 
 resource "aws_subnet" "public" {
-    count              = "${length(var.regions)}"
-    vpc_id             = aws_vpc.test.id
-    availability_zone  = "${element(var.regions, count.index)}"
-    cidr_block         = "${element(var.cidr_subnets, count.index)}"
-    map_public_ip_on_launch = true
+  count                   = "${length(var.regions)}"
+  vpc_id                  = aws_vpc.test.id
+  availability_zone       = "${element(var.regions, count.index)}"
+  cidr_block              = "${element(var.cidr_subnets, count.index)}"
+  map_public_ip_on_launch = true
 
-    tags = {
-        Name = "subnet${count.index}"
-    }
+  tags = {
+    Name = "subnet${count.index}"
+  }
 }
 
-resource "aws_route_table" "public"{
-    vpc_id = aws_vpc.test.id
-    tags = {
-        Name = "My_route_table"
-    }
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.test.id
+  tags = {
+    Name = "My_route_table"
+  }
 }
 
-resource "aws_internet_gateway" "gate"{
-    vpc_id = aws_vpc.test.id
-    tags = {
-        Name = "My_internet_gateway"
-    }
+resource "aws_internet_gateway" "gate" {
+  vpc_id = aws_vpc.test.id
+  tags = {
+    Name = "My_internet_gateway"
+  }
 }
 
-resource "aws_route" "public_internet_gateway"{
+resource "aws_route" "public_internet_gateway" {
 
-    route_table_id         = aws_route_table.public.id
-    destination_cidr_block = "0.0.0.0/0"
-    gateway_id             = aws_internet_gateway.gate.id
+  route_table_id         = aws_route_table.public.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.gate.id
 }
 
-resource "aws_route_table_association" "subnet_association"{
-    count          = 3
-    subnet_id      = element(aws_subnet.public.*.id, count.index)
-    route_table_id = aws_route_table.public.id
+resource "aws_route_table_association" "subnet_association" {
+  count          = 3
+  subnet_id      = element(aws_subnet.public.*.id, count.index)
+  route_table_id = aws_route_table.public.id
 }
 
 #
@@ -67,32 +67,32 @@ data "aws_ami" "ec2" {
 
   filter {
     name   = "name"
-    values = [ "amzn2-ami-hvm-*"]
+    values = ["amzn2-ami-hvm-*"]
   }
   owners = ["amazon"] # Canonical
 }
 
 resource "aws_security_group" "allow_80" {
-  name        = "allow_80"
-  vpc_id      = aws_vpc.test.id
-  
+  name   = "allow_80"
+  vpc_id = aws_vpc.test.id
+
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [ "0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = [ "0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    cidr_blocks     = ["0.0.0.0/0"]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
@@ -108,7 +108,7 @@ resource "aws_instance" "ins" {
   subnet_id       = element(aws_subnet.public.*.id, count.index)
   security_groups = [aws_security_group.allow_80.id]
   key_name        = "for_terraform"
-  user_data = <<-EOF
+  user_data       = <<-EOF
                #!/bin/bash
                yum update -y
                yum install -y httpd
@@ -118,16 +118,16 @@ resource "aws_instance" "ins" {
 
   tags = {
     Name = "test${count.index}"
-    }
+  }
 }
 
 
 resource "aws_lb" "test" {
-  count = 3
-  name               = "test-lb-tf${count.index}"
+
+  name               = "test-lb-tf"
   internal           = false
   load_balancer_type = "network"
-  subnets            = [element(aws_subnet.public.*.id, count.index)]
+  subnets            = [aws_subnet.public.0.id, aws_subnet.public.1.id, aws_subnet.public.2.id]
 
   enable_deletion_protection = false
 
@@ -137,36 +137,34 @@ resource "aws_lb" "test" {
 }
 
 resource "aws_lb_listener" "front_end" {
-  count = 3
-  load_balancer_arn = element(aws_lb.test.*.arn, count.index)
+  load_balancer_arn = aws_lb.test.arn
   port              = "80"
   protocol          = "TCP"
 
   default_action {
     type             = "forward"
-    target_group_arn = element(aws_lb_target_group.test.*.arn, count.index)
+    target_group_arn = aws_lb_target_group.test.arn
   }
 }
 
 resource "aws_lb_target_group" "test" {
-  count = 3
-  name     = "tf-example-lb-tg${count.index}"
+  name     = "tf-example-lb-tg"
   port     = 80
   protocol = "TCP"
   vpc_id   = aws_vpc.test.id
 
-  lifecycle { create_before_destroy=true }
+  lifecycle { create_before_destroy = true }
 
   health_check {
     #path = "/index.html"
     protocol = "TCP"
-    port = 80
+    port     = 80
   }
 }
 
 resource "aws_lb_target_group_attachment" "test" {
-  count = 3
-  target_group_arn = element(aws_lb_target_group.test.*.arn, count.index)
-  target_id        = element(aws_instance.ins.*.id , count.index)
+  count            = 3
+  target_group_arn = aws_lb_target_group.test.arn
+  target_id        = element(aws_instance.ins.*.id, count.index)
   port             = 80
 }
