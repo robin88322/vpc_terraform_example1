@@ -1,9 +1,5 @@
 #creating vpc with 3 subnets in different AZ, route table and internet gateway
 #
-#
-#
-#
-#
 
 resource "aws_vpc" "test" {
 
