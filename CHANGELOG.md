@@ -4,6 +4,12 @@
 
 
 
+v2.1.2 / 2019-12-12
+===================
+
+  * Final Release, added README.md
+  * add CHANGELOG.md
+
 v2.1.1 / 2019-12-12
 ===================
 
