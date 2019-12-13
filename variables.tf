@@ -11,6 +11,7 @@ variable "cidr_subnets" {
   us-east-2b = "10.0.2.0/24"
   us-east-2c = "10.0.3.0/24"
 }
+
 }
 
 variable "default_port" {
