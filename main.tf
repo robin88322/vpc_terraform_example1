@@ -13,7 +13,7 @@ resource "aws_vpc" "test" {
 
 resource "aws_subnet" "public" {
   count                   = "${length(var.regions)}"
-  vpc_id                  = "${aws_vpc.test.id}
+  vpc_id                  = "${aws_vpc.test.id}"
   availability_zone       = "${element(var.regions, count.index)}"
   cidr_block              = "${element(var.cidr_subnets, count.index)}"
   map_public_ip_on_launch = true
