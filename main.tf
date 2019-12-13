@@ -11,7 +11,7 @@ resource "aws_vpc" "test" {
   }
 }
 
-resource "aws_subnet" "public" {
+resource "aws_subnet" "test" {
   count                   = "${length(var.regions)}"
   vpc_id                  = "${aws_vpc.test.id}"
   availability_zone       = "${element("${var.regions}", count.index)}"
@@ -22,14 +22,14 @@ resource "aws_subnet" "public" {
     Name = "subnet${count.index}"
   }
 }
-resource "aws_route_table" "public" {
+resource "aws_route_table" "test" {
   vpc_id = "${aws_vpc.test.id}"
   tags = {
     Name = "My_route_table"
   }
 }
 
-resource "aws_internet_gateway" "gate" {
+resource "aws_internet_gateway" "test" {
   vpc_id = "${aws_vpc.test.id}"
 
   tags = {
@@ -37,17 +37,17 @@ resource "aws_internet_gateway" "gate" {
   }
 }
 
-resource "aws_route" "public_internet_gateway" {
+resource "aws_route" "test" {
 
-  route_table_id         = "${aws_route_table.public.id}"
+  route_table_id         = "${aws_route_table.test.id}"
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = "${aws_internet_gateway.gate.id}"
+  gateway_id             = "${aws_internet_gateway.test.id}"
 }
 
-resource "aws_route_table_association" "subnet_association" {
+resource "aws_route_table_association" "test" {
   count          = "${length(var.regions)}"
-  subnet_id      = "${element(aws_subnet.public.*.id, count.index)}"
-  route_table_id = "${aws_route_table.public.id}"
+  subnet_id      = "${element(aws_subnet.test.*.id, count.index)}"
+  route_table_id = "${aws_route_table.test.id}"
 }
 
 #
@@ -97,11 +97,11 @@ resource "aws_security_group" "test" {
 }
 
 
-resource "aws_instance" "ins" {
-  count  = "${length(var.regions)}"
+resource "aws_instance" "test" {
+  count           = "${length(var.regions)}"
   ami             = "${data.aws_ami.ec2.id}"
   instance_type   = "t2.micro"
-  subnet_id       = "${element("${aws_subnet.public.*.id}", count.index)}"
+  subnet_id       = "${element("${aws_subnet.test.*.id}", count.index)}"
   security_groups = ["${aws_security_group.test.id}"]
   key_name        = "for_terraform"
   user_data       = <<-EOF
@@ -123,7 +123,7 @@ resource "aws_lb" "test" {
   name               = "test-lb-tf"
   internal           = false
   load_balancer_type = "network"
-  subnets            = ["${aws_subnet.public.*.id}"]
+  subnets            = ["${aws_subnet.test.*.id}"]
 
   enable_deletion_protection = false
 
@@ -160,6 +160,6 @@ resource "aws_lb_target_group" "test" {
 resource "aws_lb_target_group_attachment" "test" {
   count            = "${length(var.regions)}"
   target_group_arn = "${aws_lb_target_group.test.arn}"
-  target_id        = "${element("${aws_instance.ins.*.id}", count.index)}"
-  port             = 80
+  target_id        = "${element("${aws_instance.test.*.id}", count.index)}"
+  port             = "${var.default_port}"
 }

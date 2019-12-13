@@ -7,11 +7,11 @@ provider "aws" {
 }
 
 terraform {
- backend "s3" {
+  backend "s3" {
 
-  encrypt = true
-  bucket = "my.tfstate.bucket"
-  region = "us-east-2"
-  key = "my.tfstate.bucket/terraform.tfstate"
- }
+    encrypt = true
+    bucket  = "my.tfstate.bucket"
+    region  = "us-east-2"
+    key     = "my.tfstate.bucket/terraform.tfstate"
+  }
 }
