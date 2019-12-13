@@ -3,6 +3,6 @@ terraform {
  encrypt = true
  bucket = "${bucket_name}"
  region = "${var.aws_region}"
- key = /terraform.tfstate
+ key = terraform.tfstate
  }
 }
