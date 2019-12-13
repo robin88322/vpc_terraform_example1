@@ -5,3 +5,13 @@ provider "aws" {
 
   version = "~> 2.7"
 }
+
+terraform {
+  backend "s3" {
+
+    encrypt = true
+    bucket  = "my.tfstate.bucket"
+    region  = "us-east-2"
+    key     = "my.tfstate.bucket/terraform.tfstate"
+  }
+}
