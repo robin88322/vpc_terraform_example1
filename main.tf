@@ -22,7 +22,6 @@ resource "aws_subnet" "public" {
     Name = "subnet${count.index}"
   }
 }
-https://github.com/robin88322/vpc_terraform_example1
 resource "aws_route_table" "public" {
   vpc_id = "${aws_vpc.test.id}"
   tags = {
