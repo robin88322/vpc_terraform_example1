@@ -19,7 +19,7 @@ variable "default_port" {
 variable "default_protocol" {
   type = "map"
   default = {
-    80   =  "TCP"
-    22   =  "TCP"
+    "80"   =  "TCP"
+    "22"   =  "TCP"
   }
 }
