@@ -1,9 +1,5 @@
 #creating vpc with 3 subnets in different AZ, route table and internet gateway
 #
-#
-#
-#
-#
 
 resource "aws_vpc" "test" {
 
@@ -15,43 +11,43 @@ resource "aws_vpc" "test" {
   }
 }
 
-resource "aws_subnet" "public" {
-  count                   = "${length(var.regions)}"
-  vpc_id                  = aws_vpc.test.id
-  availability_zone       = "${element(var.regions, count.index)}"
-  cidr_block              = "${element(var.cidr_subnets, count.index)}"
-  map_public_ip_on_launch = true
+resource "aws_subnet" "test" {
+  for_each                =  toset(var.regions)
+  vpc_id                  =  aws_vpc.test.id
+  availability_zone       =  each.value
+  cidr_block              =  var.cidr_subnets[each.key]
+  map_public_ip_on_launch =  true
 
   tags = {
-    Name = "subnet${count.index}"
+    Name = "subnet${each.key}"
   }
 }
 
-resource "aws_route_table" "public" {
+resource "aws_route_table" "test" {
   vpc_id = aws_vpc.test.id
   tags = {
     Name = "My_route_table"
   }
 }
 
-resource "aws_internet_gateway" "gate" {
+resource "aws_internet_gateway" "test" {
   vpc_id = aws_vpc.test.id
   tags = {
     Name = "My_internet_gateway"
   }
 }
 
-resource "aws_route" "public_internet_gateway" {
+resource "aws_route" "test" {
 
-  route_table_id         = aws_route_table.public.id
+  route_table_id         = aws_route_table.test.id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.gate.id
+  gateway_id             = aws_internet_gateway.test.id
 }
 
-resource "aws_route_table_association" "subnet_association" {
-  count          = 3
-  subnet_id      = element(aws_subnet.public.*.id, count.index)
-  route_table_id = aws_route_table.public.id
+resource "aws_route_table_association" "test" {
+  for_each       = toset(var.regions)
+  subnet_id      = aws_subnet.test[each.key].id
+  route_table_id = aws_route_table.test.id
 }
 
 #
@@ -72,20 +68,20 @@ data "aws_ami" "ec2" {
   owners = ["amazon"] # Canonical
 }
 
-resource "aws_security_group" "allow_80" {
+resource "aws_security_group" "test" {
   name   = "allow_80"
   vpc_id = aws_vpc.test.id
 
   ingress {
     from_port   = 22
     to_port     = 22
-    protocol    = "tcp"
+    protocol    = var.default_protocol[22]
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
+    from_port   = var.default_port
+    to_port     = var.default_port
+    protocol    = var.default_protocol[var.default_port]
     cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
@@ -101,23 +97,23 @@ resource "aws_security_group" "allow_80" {
 }
 
 
-resource "aws_instance" "ins" {
-  count           = 3
-  ami             = "${data.aws_ami.ec2.id}"
+resource "aws_instance" "test" {
+  for_each        = toset(var.regions)
+  ami             = data.aws_ami.ec2.id
   instance_type   = "t2.micro"
-  subnet_id       = element(aws_subnet.public.*.id, count.index)
-  security_groups = [aws_security_group.allow_80.id]
+  subnet_id       = aws_subnet.test[each.key].id
+  security_groups = [aws_security_group.test.id]
   key_name        = "for_terraform"
   user_data       = <<-EOF
                #!/bin/bash
                yum update -y
                yum install -y httpd
-               echo "Hello, this is server ${count.index} in region ${element(var.regions, count.index)}" > /var/www/html/index.html
+               echo "Hello, this is server ${each.key} in region ${each.key}" > /var/www/html/index.html
                systemctl start httpd
                EOF
 
   tags = {
-    Name = "test${count.index}"
+    Name = "test${each.key}"
   }
 }
 
@@ -127,19 +123,19 @@ resource "aws_lb" "test" {
   name               = "test-lb-tf"
   internal           = false
   load_balancer_type = "network"
-  subnets            = [aws_subnet.public.0.id, aws_subnet.public.1.id, aws_subnet.public.2.id]
+  subnets            =[for b in  aws_subnet.test : b.id]
 
   enable_deletion_protection = false
 
   tags = {
-    Environment = "production"
+    Environment = "test"
   }
 }
 
-resource "aws_lb_listener" "front_end" {
+resource "aws_lb_listener" "test" {
   load_balancer_arn = aws_lb.test.arn
-  port              = "80"
-  protocol          = "TCP"
+  port              = var.default_port
+  protocol          = var.default_protocol[var.default_port]
 
   default_action {
     type             = "forward"
@@ -149,22 +145,21 @@ resource "aws_lb_listener" "front_end" {
 
 resource "aws_lb_target_group" "test" {
   name     = "tf-example-lb-tg"
-  port     = 80
-  protocol = "TCP"
+  port     = var.default_port
+  protocol = var.default_protocol[var.default_port]
   vpc_id   = aws_vpc.test.id
 
   lifecycle { create_before_destroy = true }
 
   health_check {
-    #path = "/index.html"
-    protocol = "TCP"
-    port     = 80
+    protocol = var.default_protocol[var.default_port]
+    port     = var.default_port
   }
 }
 
 resource "aws_lb_target_group_attachment" "test" {
-  count            = 3
+  for_each        = toset(var.regions)
   target_group_arn = aws_lb_target_group.test.arn
-  target_id        = element(aws_instance.ins.*.id, count.index)
-  port             = 80
-}
+  target_id        = aws_instance.test[each.key].id
+  port             = var.default_port
+} 
