@@ -13,7 +13,7 @@ resource "aws_vpc" "test" {
 
 resource "aws_subnet" "public" {
   count                   = "${length(var.regions)}"
-  vpc_id                  = aws_vpc.test.id
+  vpc_id                  = "${aws_vpc.test.id}
   availability_zone       = "${element(var.regions, count.index)}"
   cidr_block              = "${element(var.cidr_subnets, count.index)}"
   map_public_ip_on_launch = true
@@ -22,16 +22,17 @@ resource "aws_subnet" "public" {
     Name = "subnet${count.index}"
   }
 }
-
+https://github.com/robin88322/vpc_terraform_example1
 resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.test.id
+  vpc_id = "${aws_vpc.test.id}"
   tags = {
     Name = "My_route_table"
   }
 }
 
 resource "aws_internet_gateway" "gate" {
-  vpc_id = aws_vpc.test.id
+  vpc_id = "${aws_vpc.test.id}"
+
   tags = {
     Name = "My_internet_gateway"
   }
@@ -39,15 +40,15 @@ resource "aws_internet_gateway" "gate" {
 
 resource "aws_route" "public_internet_gateway" {
 
-  route_table_id         = aws_route_table.public.id
+  route_table_id         = "${aws_route_table.public.id}"
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.gate.id
+  gateway_id             = "${aws_internet_gateway.gate.id}"
 }
 
 resource "aws_route_table_association" "subnet_association" {
   count          = 3
-  subnet_id      = element(aws_subnet.public.*.id, count.index)
-  route_table_id = aws_route_table.public.id
+  subnet_id      = "${element(aws_subnet.public.*.id, count.index)}"
+  route_table_id = "${aws_route_table.public.id}"
 }
 
 #
@@ -68,9 +69,9 @@ data "aws_ami" "ec2" {
   owners = ["amazon"] # Canonical
 }
 
-resource "aws_security_group" "allow_80" {
+resource "aws_security_group" "test" {
   name   = "allow_80"
-  vpc_id = aws_vpc.test.id
+  vpc_id = "${aws_vpc.test.id}"
 
   ingress {
     from_port   = 22
@@ -133,13 +134,13 @@ resource "aws_lb" "test" {
 }
 
 resource "aws_lb_listener" "front_end" {
-  load_balancer_arn = aws_lb.test.arn
+  load_balancer_arn = "${aws_lb.test.arn}"
   port              = "80"
   protocol          = "TCP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.test.arn
+    target_group_arn = "${aws_lb_target_group.test.arn}"
   }
 }
 
@@ -147,7 +148,7 @@ resource "aws_lb_target_group" "test" {
   name     = "tf-example-lb-tg"
   port     = 80
   protocol = "TCP"
-  vpc_id   = aws_vpc.test.id
+  vpc_id   = "${aws_vpc.test.id}"
 
   lifecycle { create_before_destroy = true }
 
