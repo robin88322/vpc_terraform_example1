@@ -102,8 +102,8 @@ resource "aws_instance" "ins" {
   count           = 3
   ami             = "${data.aws_ami.ec2.id}"
   instance_type   = "t2.micro"
-  subnet_id       = element(aws_subnet.public.*.id, count.index)
-  security_groups = [aws_security_group.allow_80.id]
+  subnet_id       = "${element("${aws_subnet.public.*.id}", count.index)}"
+  security_groups = ["${aws_security_group.test.id}"]
   key_name        = "for_terraform"
   user_data       = <<-EOF
                #!/bin/bash
@@ -124,7 +124,7 @@ resource "aws_lb" "test" {
   name               = "test-lb-tf"
   internal           = false
   load_balancer_type = "network"
-  subnets            = [aws_subnet.public.0.id, aws_subnet.public.1.id, aws_subnet.public.2.id]
+  subnets            = ["${aws_subnet.public.0.id}", "${aws_subnet.public.1.id}", "${aws_subnet.public.2.id}"]
 
   enable_deletion_protection = false
 
@@ -133,7 +133,7 @@ resource "aws_lb" "test" {
   }
 }
 
-resource "aws_lb_listener" "front_end" {
+resource "aws_lb_listener" "test" {
   load_balancer_arn = "${aws_lb.test.arn}"
   port              = "80"
   protocol          = "TCP"
