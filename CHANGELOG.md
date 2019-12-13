@@ -4,12 +4,21 @@
 
 
 
+<<<<<<< HEAD
+v2.2.0 / 2019-12-12
+===================
+
+  * Updated code for terraform 0.12
+  * add CHANGELOG.md
+
 v2.1.2 / 2019-12-12
 ===================
 
   * Final Release, added README.md
   * add CHANGELOG.md
 
+=======
+>>>>>>> parent of d54820e... add CHANGELOG.md
 v2.1.1 / 2019-12-12
 ===================
 
